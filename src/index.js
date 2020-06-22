@@ -16,12 +16,14 @@ if (!cron.validate(config.CRON)) {
 (async () => {
     const cache = new Cache();
     const webhookClient = new WebhookClient(config.DISCORD_WEBHOOK_ID, config.DISCORD_WEBHOOK_TOKEN);
-    let { data: html } = await axios.get(config.WATCH_URL);
+    let { data: html } = await axios.get(config.WATCH_URL)
+        .catch(log);
 
     cache.set(config.WATCH_NAME, html);
     cron.schedule(config.CRON, async () => {
-        console.log(`[${dayjs().toISOString()}] Started`);
-        let { data: html } = await axios.get(config.WATCH_URL);
+        log("Started");
+        let { data: html } = await axios.get(config.WATCH_URL)
+            .catch(log);
         const diff = createTwoFilesPatch(
             "cached", "fresh", // filenames
             cache.get(config.WATCH_NAME), html, // content
@@ -35,7 +37,7 @@ if (!cron.validate(config.CRON)) {
         }
 
         cache.set(config.WATCH_NAME, html);
-        console.log(`[${dayjs().toISOString()}] Stopped`);
+        log("Stopped");
     });
 })();
 
@@ -54,4 +56,8 @@ function buildHunkHeader(hunk) {
 
 function buildHunkLines(hunk) {
     return hunk.lines.map((line, index) => `${line}${hunk.linedelimiters[index]}`).join("");
+}
+
+function log(message) {
+    console.log(`[${dayjs().toISOString()}] ${message}`);
 }
