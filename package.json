@@ -4,7 +4,8 @@
   "description": "",
   "main": "src/index.js",
   "scripts": {
-    "start": "node -r dotenv/config ."
+    "dev": "node -r dotenv/config .",
+    "start": "node ."
   },
   "dependencies": {
     "axios": "^0.19.2",
