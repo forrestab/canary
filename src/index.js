@@ -40,6 +40,7 @@ if (!cron.validate(config.CRON)) {
         cache.set(config.WATCH_NAME, html);
         log("Stopped");
     });
+    webhookClient.destroy();
 })();
 
 async function getPage(url) {
