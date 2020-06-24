@@ -1,9 +1,9 @@
 const cron = require("node-cron");
 const Cache = require("node-cache");
 const { WebhookClient } = require("discord.js");
-const axios = require("axios");
 const { createTwoFilesPatch, parsePatch } = require("diff");
 const dayjs = require("dayjs");
+const fetch = require("node-fetch");
 
 const config = process.env;
 
@@ -16,14 +16,12 @@ if (!cron.validate(config.CRON)) {
 (async () => {
     const cache = new Cache();
     const webhookClient = new WebhookClient(config.DISCORD_WEBHOOK_ID, config.DISCORD_WEBHOOK_TOKEN);
-    let { data: html } = await axios.get(config.WATCH_URL)
-        .catch(log);
+    const html = await getPage(config.WATCH_URL);
 
     cache.set(config.WATCH_NAME, html);
     cron.schedule(config.CRON, async () => {
         log("Started");
-        let { data: html } = await axios.get(config.WATCH_URL)
-            .catch(log);
+        const html = await getPage(config.WATCH_URL);
         const diff = createTwoFilesPatch(
             "cached", "fresh", // filenames
             cache.get(config.WATCH_NAME), html, // content
@@ -33,13 +31,33 @@ if (!cron.validate(config.CRON)) {
         const [parsedDiff] = parsePatch(diff);
 
         if (parsedDiff.hunks.length > 0) {
+            log("Change detected");
             await webhookClient.send(buildNotification(config.WATCH_NAME, parsedDiff.hunks));
+        } else {
+            log("No change detected");
         }
 
         cache.set(config.WATCH_NAME, html);
         log("Stopped");
     });
 })();
+
+async function getPage(url) {
+    try {
+        const response = await fetch(url);
+
+        return await response.text();
+    } catch (error) {
+        // Not sure why this is happening, but it clears up on the next call so
+        // just retry one more time.
+        if (error.code === "ECONNRESET") {
+            log("Retrying");
+            const response = await fetch(url);
+
+            return await response.text();
+        }
+    }
+}
 
 function buildNotification(name, hunks) {
     let content = `Changes detected for **${name}**\n`;
