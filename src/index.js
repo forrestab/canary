@@ -63,8 +63,10 @@ async function getPage(url) {
 function buildNotification(name, hunks) {
     let content = `Changes detected for **${name}**\n`;
 
+    /*
     content += "```diff\n" + hunks
         .reduce((body, hunk) => `${body}${buildHunkHeader(hunk)}${buildHunkLines(hunk)}\n`, "") + "\n```";
+    */
 
     return content;
 }
